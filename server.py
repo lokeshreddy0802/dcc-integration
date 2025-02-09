@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 import sqlite3
 import time
 
@@ -10,46 +11,59 @@ cursor = conn.cursor()
 cursor.execute("CREATE TABLE IF NOT EXISTS inventory (name TEXT, quantity INTEGER)")
 conn.commit()
 
-# 📌 **1. Handle Full Transform Data (Position, Rotation, Scale)**
+# Define Data Models for Validation
+class TransformData(BaseModel):
+    name: str
+    location: list[float] = []
+    rotation: list[float] = []
+    scale: list[float] = []
+
+class TranslationData(BaseModel):
+    name: str
+    location: list[float]
+
+class RotationData(BaseModel):
+    name: str
+    rotation: list[float]
+
+class ScaleData(BaseModel):
+    name: str
+    scale: list[float]
+
+#  **1. Handle Full Transform Data (Position, Rotation, Scale)**
 @app.post("/transform")
-async def transform(data: dict):
+async def transform(data: TransformData):
     try:
         time.sleep(10)  # Simulate delay
-        return {"status": "success", "data": data}
+        return {"status": "success", "data": data.dict()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 📌 **2. Handle Only Position (Translation)**
+#  **2. Handle Only Position (Translation)**
 @app.post("/translation")
-async def translation(data: dict):
+async def translation(data: TranslationData):
     try:
-        if "location" not in data:
-            raise HTTPException(status_code=400, detail="Missing 'location' field")
-        return {"status": "success", "location": data["location"]}
+        return {"status": "success", "location": data.location}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 📌 **3. Handle Only Rotation**
+#  **3. Handle Only Rotation**
 @app.post("/rotation")
-async def rotation(data: dict):
+async def rotation(data: RotationData):
     try:
-        if "rotation" not in data:
-            raise HTTPException(status_code=400, detail="Missing 'rotation' field")
-        return {"status": "success", "rotation": data["rotation"]}
+        return {"status": "success", "rotation": data.rotation}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 📌 **4. Handle Only Scale**
+#  **4. Handle Only Scale**
 @app.post("/scale")
-async def scale(data: dict):
+async def scale(data: ScaleData):
     try:
-        if "scale" not in data:
-            raise HTTPException(status_code=400, detail="Missing 'scale' field")
-        return {"status": "success", "scale": data["scale"]}
+        return {"status": "success", "scale": data.scale}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 📌 **5. Return File Path (Optional: Project Path)**
+#  **5. Return File Path (Optional: Project Path)**
 @app.get("/file-path")
 async def file_path(projectpath: bool = False):
     try:
@@ -59,7 +73,7 @@ async def file_path(projectpath: bool = False):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 📌 **6. Add Item to Inventory**
+#  **6. Add Item to Inventory**
 @app.post("/add-item")
 async def add_item(name: str, quantity: int):
     try:
@@ -69,7 +83,7 @@ async def add_item(name: str, quantity: int):
     except sqlite3.Error as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 📌 **7. Remove Item from Inventory**
+#  **7. Remove Item from Inventory**
 @app.post("/remove-item")
 async def remove_item(name: str):
     try:
@@ -79,7 +93,7 @@ async def remove_item(name: str):
     except sqlite3.Error as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 📌 **8. Update Quantity of an Existing Item (FIXED RESPONSE FORMAT)**
+#  **8. Update Quantity of an Existing Item (FIXED RESPONSE FORMAT)**
 @app.post("/update-quantity")
 async def update_quantity(name: str, new_quantity: int):
     try:
@@ -89,7 +103,7 @@ async def update_quantity(name: str, new_quantity: int):
     except sqlite3.Error as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 📌 **Run the Server**
+#  **Run the Server**
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
